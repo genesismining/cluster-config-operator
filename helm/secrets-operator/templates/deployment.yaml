@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Release.Name}}-deployment
+  labels:
+    app: {{.Release.Name}}
+spec:
+  replicas: {{.Values.replicas}}
+  selector:
+    matchLabels:
+      app: {{.Release.Name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Release.Name}}
+    spec:
+{{ if .Values.rbac.create }}
+      serviceAccountName: {{.Release.Name}}-serviceaccount
+{{ else }}
+      serviceAccountName: {{.Values.rbac.serviceAccount}}
+{{ end }}
+      containers:
+        - name: {{.Release.Name}}-pod
+          image: "{{.Values.image.repository}}:{{.Values.image.version}}"
+{{ if .Values.secret.internal }}
+          env:
+            - name: SECRET_NAMESPACE
+              value: {{.Values.namespace}}
+            - name: SECRET_NAME
+              value: {{.Release.Name}}-secret
+{{ else }}
+          env:
+            - name: SECRET_NAMESPACE
+              value: {{.Values.secret.namespace}}
+            - name: SECRET_NAME
+              value: {{.Values.secret.name}}-secret
+{{ end }}

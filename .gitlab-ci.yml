@@ -1,0 +1,210 @@
+# ------------------------------------------------
+# CI CD pipeline for kubernetes deployments of a python application
+# ------------------------------------------------
+# Written by Christopher Becker
+# christopher.becker@genesis-mining.com
+# ------------------------------------------------
+services:
+  - name: docker:stable-dind
+    entrypoint: ["env", "-u", "DOCKER_HOST"]
+    command: ["dockerd-entrypoint.sh"]
+
+# ------------------------------------------------
+# Global variables
+# ------------------------------------------------
+variables:
+# Docker specific variables for a working docker daemon. Do not change them.
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://localhost:2375
+  DOCKER_TLS_CERTDIR: ""
+
+# For Docker Build
+  REGISTRY: eu.gcr.io/internal-services-272317
+  RELEASE_IMAGE_NAME: ${REGISTRY}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}
+  PY_BASE_IMAGE: python:3.7
+  APP_PATH: src
+
+# For Helm Build
+  HELM_PATH: helm/secrets-operator
+  HELM_VALUES_PATH: ${HELM_PATH}/values.yaml
+  HELM_NAMESPACE: ${CI_PROJECT_NAME}-production
+
+# External used services
+  # HELM_REPO_URL: http://stable-charts-chartmuseum.helm-charts.svc.cluster.local:8080
+  HELM_REPO_URL: https://stable-charts.infra.bcc.gmbh
+  VERSION_CONTROL_URL: https://versionstore.infra.bcc.gmbh
+
+# Images for pipeline jobs
+  K8S_BASE_IMAGE: dtzar/helm-kubectl:2.12.3
+  FLAKE_BASE_IMAGE: pipelinecomponents/flake8:0.3.1
+  CURL_BASE_IMAGE: curlimages/curl:7.66.0
+  DOCKER_BASE_IMAGE: docker:stable-dind
+
+stages:
+  - prepare
+  - build
+  - release
+  - deploy
+
+.set hi tag:
+  tags:
+    - infra-k8s-high-performance
+
+.set lo tag:
+  tags:
+    - infra-k8s-low-performance
+
+
+# This template defines the correct procedure for logging into the Google Cloud Registry
+.docker registry auth:
+  extends: .set hi tag
+  image: ${DOCKER_BASE_IMAGE}
+  before_script:
+    - echo ${REGISTRY_PASS} | docker login -u _json_key --password-stdin https://eu.gcr.io
+
+.updating application:
+  extends: .set lo tag
+  image: ${K8S_BASE_IMAGE}
+  before_script:
+    - echo 'http://mirror.leaseweb.com/alpine/latest-stable/main' > /etc/apk/repositories
+    - apk add curl jq
+    - apk upgrade
+  script:
+    - >
+      LATEST_VERSION=$(curl -H "Content-Type: application/json" -X POST -d "{\"name\":\"$CI_PROJECT_NAME\"}"
+      -u ${VERSIONCONTROL_USER}:${VERSIONCONTROL_PASS}
+      $VERSION_CONTROL_URL/api/v1/getversion | jq -r '.version')
+    - echo $LATEST_VERSION
+    - helm init --client-only
+    - helm repo add --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} stable-infra-charts ${HELM_REPO_URL}
+    - helm repo update stable-infra-charts/
+    - >
+      helm upgrade ${CI_PROJECT_NAME}
+      --install
+      --namespace ${HELM_NAMESPACE}
+      --values ${HELM_VALUES_PATH}
+      --version ${LATEST_VERSION}
+      --set-string image.version=${LATEST_VERSION}
+      stable-infra-charts/${CI_PROJECT_NAME}
+    - helm history ${CI_PROJECT_NAME}
+
+########################################################################
+# PREPARE STAGE                                                        #
+########################################################################
+
+helm lint:
+  stage: prepare
+  extends: .set lo tag
+  image: ${K8S_BASE_IMAGE}
+  before_script:
+    - helm init --client-only
+    - cd ${HELM_PATH}
+    - rm -f .helmignore
+  script:
+    - helm lint | tee helm-lint.log
+
+helm dry run:
+  stage: prepare
+  extends: .set lo tag
+  image: ${K8S_BASE_IMAGE}
+  script:
+    - helm init --client-only
+    - >
+      helm install
+      --dry-run
+      --namespace default
+      --name ${CI_PROJECT_NAME}-dry-run
+      --values ${HELM_VALUES_PATH}
+      ${HELM_PATH}
+
+
+python lint:
+  stage: prepare
+  extends: .set lo tag
+  image: ${FLAKE_BASE_IMAGE}
+  before_script:
+    - cd ${APP_PATH}
+  script:
+    - flake8 --max-line-length=140 --verbose . | tee py-lint.log
+
+helm connect stable repo:
+  stage: prepare
+  extends: .set lo tag
+  image: ${K8S_BASE_IMAGE}
+  script:
+    - helm init --client-only
+    - helm repo add --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} stable-infra-charts ${HELM_REPO_URL} || true
+    - helm search stable-infra-charts/${CI_PROJECT_NAME} --versions
+  only:
+    refs:
+      - master
+      - tags
+
+########################################################################
+# BUILD STAGE                                                          #
+########################################################################
+
+docker image build:
+  stage: build
+  extends: .docker registry auth
+  script:
+    - docker build --build-arg BASE_IMAGE=${PY_BASE_IMAGE} --build-arg PY_PATH=${APP_PATH} -t ${RELEASE_IMAGE_NAME} .
+    - docker push ${RELEASE_IMAGE_NAME}
+  only:
+    refs:
+      - tags
+
+
+helm repo build:
+  stage: build
+  extends: .set lo tag
+  image: ${K8S_BASE_IMAGE}
+  script:
+    - cd ${HELM_PATH}
+    - helm init --client-only
+    - helm plugin install https://github.com/chartmuseum/helm-push
+    - helm repo add --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} stable-infra-charts ${HELM_REPO_URL}
+    - helm package . --version ${CI_COMMIT_TAG} --app-version ${CI_COMMIT_TAG}
+    - helm push $(ls *tgz) --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} ${HELM_REPO_URL}
+  only:
+    refs:
+      - tags
+
+########################################################################
+# RELEASE STAGE                                                        #
+########################################################################
+
+update versioncontrol:
+  stage: release
+  extends: .set lo tag
+  image: ${CURL_BASE_IMAGE}
+  script:
+    - >
+      curl -i -H "Content-Type: application/json" -X POST
+      -d "{\"name\":\"$CI_PROJECT_NAME\",\"version\":\"$CI_COMMIT_TAG\",\"appversion\":\"$CI_COMMIT_TAG\"}"
+      -u ${VERSIONCONTROL_USER}:${VERSIONCONTROL_PASS}
+      ${VERSION_CONTROL_URL}/api/v1/setversion
+  only:
+    refs:
+      - tags
+
+########################################################################
+# DEPLOY STAGE                                                         #
+########################################################################
+
+deploy helm chart:
+  stage: deploy
+  extends: .updating application
+  only:
+    refs:
+      - tags
+
+
+deploy new settings:
+  stage: deploy
+  extends: .updating application
+  only:
+    refs:
+      - master
+    changes:
+      - helm/secrets-operator/values.yaml

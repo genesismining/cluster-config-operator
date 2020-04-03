@@ -1,0 +1,16 @@
+rbac:
+  create: true
+  serviceAccount: foo
+
+image:
+  repository: eu.gcr.io/internal-services-272317/secrets-operator
+  version: 1.0.0
+  pullPolicy: IfNotPresent
+
+namespace: secrets-operator
+replicas: 1
+
+secret:
+  internal: false
+  name: gmadmin-secret
+  namespace: kube-ingress
