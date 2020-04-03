@@ -48,7 +48,7 @@ stages:
 
 .set hi tag:
   tags:
-    - infra-k8s-high-performance
+    - infra-k8s-intermediate
 
 .set lo tag:
   tags:
