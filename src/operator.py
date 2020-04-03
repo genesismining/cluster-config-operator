@@ -25,12 +25,11 @@ def create_secret(body, spec, **kwargs):
             namespace=environ.get('SECRET_NAMESPACE'),
         )
         DATA = SECRET.data
+        SEC_SCHEMA['metadata']['name'] = environ.get('SECRET_NAME')
+        SEC_SCHEMA['metadata']['namespace'] = NS_NAME
+        SEC_SCHEMA['data'] = DATA
     except Exception:
         print("Source Secret not found")
-
-    SEC_SCHEMA['metadata']['name'] = environ.get('SECRET_NAME')
-    SEC_SCHEMA['metadata']['namespace'] = NS_NAME
-    SEC_SCHEMA['data'] = DATA
 
     try:
         v1_api.create_namespaced_secret(
