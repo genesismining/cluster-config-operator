@@ -33,5 +33,5 @@ spec:
             - name: SECRET_NAMESPACE
               value: {{.Values.secret.namespace}}
             - name: SECRET_NAME
-              value: {{.Values.secret.name}}-secret
+              value: {{.Values.secret.name}}
 {{ end }}
