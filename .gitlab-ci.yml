@@ -148,7 +148,7 @@ docker image build:
   stage: build
   extends: .docker registry auth
   script:
-    - docker build --build-arg BASE_IMAGE=${PY_BASE_IMAGE} --build-arg PY_PATH=${APP_PATH} -t ${RELEASE_IMAGE_NAME} .
+    - docker build -t ${RELEASE_IMAGE_NAME} .
     - docker push ${RELEASE_IMAGE_NAME}
   only:
     refs:
