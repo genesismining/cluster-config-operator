@@ -33,6 +33,7 @@ variables:
   # HELM_REPO_URL: http://stable-charts-chartmuseum.helm-charts.svc.cluster.local:8080
   HELM_REPO_URL: https://stable-charts.infra.bcc.gmbh
   VERSION_CONTROL_URL: https://versionstore.infra.bcc.gmbh
+  SONAR_URL: https://sonar.infra.bcc.gmbh
 
 # Images for pipeline jobs
   K8S_BASE_IMAGE: dtzar/helm-kubectl:2.12.3
@@ -117,6 +118,16 @@ helm dry run:
       --values ${HELM_VALUES_PATH}
       ${HELM_PATH}
 
+check code quality:
+  stage: prepare
+  extends: .set lo tag
+  image: zaquestion/sonarqube-scanner
+  before_script:
+    - apk add nodejs --no-cache
+    - npm config set unsafe-perm true
+  script:
+    - sonar-scanner
+  allow_failure: true
 
 python lint:
   stage: prepare
