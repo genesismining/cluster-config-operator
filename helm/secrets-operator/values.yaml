@@ -10,7 +10,10 @@ image:
 namespace: secrets-operator-production
 replicas: 1
 
+# If false a already existing secret has to be configured
+# If true a secret will be deployed within that release
+
 secret:
   internal: false
-  name: gmadmin-secret
-  namespace: kube-ingress
+  name: somesecret
+  namespace: somenamespace

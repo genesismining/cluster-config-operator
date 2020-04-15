@@ -67,11 +67,8 @@ Executed jobs:
     * Check if Repository Server is reachable
 * Tags:
     * Build new Version of Helm package
-    * Build new Docker Image
     * Update Versioncontrol
-    * Upgrade Deployments
-* Changed `values-*.yaml`
-    * Update Deployments
+    * Trigger Deployment in the infra-gke repository
 
 ## Author
 
