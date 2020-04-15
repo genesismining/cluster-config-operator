@@ -26,6 +26,7 @@ variables:
 
 # For Helm Build
   HELM_PATH: helm/secrets-operator
+  HELM_VALUES_PATH: helm/secrets-operator/values.yaml
 
 # External used services
   # HELM_REPO_URL: http://stable-charts-chartmuseum.helm-charts.svc.cluster.local:8080
