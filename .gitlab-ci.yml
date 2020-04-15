@@ -26,8 +26,6 @@ variables:
 
 # For Helm Build
   HELM_PATH: helm/secrets-operator
-  HELM_VALUES_PATH: ${HELM_PATH}/values.yaml
-  HELM_NAMESPACE: ${CI_PROJECT_NAME}-production
 
 # External used services
   # HELM_REPO_URL: http://stable-charts-chartmuseum.helm-charts.svc.cluster.local:8080
@@ -62,32 +60,6 @@ stages:
   image: ${DOCKER_BASE_IMAGE}
   before_script:
     - echo ${REGISTRY_PASS} | docker login -u _json_key --password-stdin https://eu.gcr.io
-
-.updating application:
-  extends: .set lo tag
-  image: ${K8S_BASE_IMAGE}
-  before_script:
-    - echo 'http://mirror.leaseweb.com/alpine/latest-stable/main' > /etc/apk/repositories
-    - apk add curl jq
-    - apk upgrade
-  script:
-    - >
-      LATEST_VERSION=$(curl -H "Content-Type: application/json" -X POST -d "{\"name\":\"$CI_PROJECT_NAME\"}"
-      -u ${VERSIONCONTROL_USER}:${VERSIONCONTROL_PASS}
-      $VERSION_CONTROL_URL/api/v1/getversion | jq -r '.version')
-    - echo $LATEST_VERSION
-    - helm init --client-only
-    - helm repo add --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} stable-infra-charts ${HELM_REPO_URL}
-    - helm repo update stable-infra-charts/
-    - >
-      helm upgrade ${CI_PROJECT_NAME}
-      --install
-      --namespace ${HELM_NAMESPACE}
-      --values ${HELM_VALUES_PATH}
-      --version ${LATEST_VERSION}
-      --set-string image.version=${LATEST_VERSION}
-      stable-infra-charts/${CI_PROJECT_NAME}
-    - helm history ${CI_PROJECT_NAME}
 
 ########################################################################
 # PREPARE STAGE                                                        #
@@ -203,19 +175,18 @@ update versioncontrol:
 # DEPLOY STAGE                                                         #
 ########################################################################
 
-deploy helm chart:
+trigger deployment:
   stage: deploy
-  extends: .updating application
+  extends: .set lo tag
+  image: ${CURL_BASE_IMAGE}
+  script:
+    - >
+      curl 
+      -X POST
+      -F token=${PIPELINE_TOKEN}
+      -F "ref=master"
+      -F "variables[SOURCE_REPOSITORY]=${CI_PROJECT_NAME}"
+      https://gitlab.com/api/v4/projects/17728807/trigger/pipeline
   only:
     refs:
       - tags
-
-
-deploy new settings:
-  stage: deploy
-  extends: .updating application
-  only:
-    refs:
-      - master
-    changes:
-      - helm/secrets-operator/values.yaml
