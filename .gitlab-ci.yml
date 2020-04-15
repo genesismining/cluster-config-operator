@@ -4,6 +4,11 @@
 # Written by Christopher Becker
 # christopher.becker@genesis-mining.com
 # ------------------------------------------------
+
+include:
+  - project: genesis-group/office-it-bcc/infra-ci-templates
+    file: build-repositories.yaml
+
 services:
   - name: docker:stable-dind
     entrypoint: ["env", "-u", "DOCKER_HOST"]
@@ -13,14 +18,8 @@ services:
 # Global variables
 # ------------------------------------------------
 variables:
-# Docker specific variables for a working docker daemon. Do not change them.
-  DOCKER_DRIVER: overlay2
-  DOCKER_HOST: tcp://localhost:2375
-  DOCKER_TLS_CERTDIR: ""
 
 # For Docker Build
-  REGISTRY: eu.gcr.io/internal-services-272317
-  RELEASE_IMAGE_NAME: ${REGISTRY}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}
   PY_BASE_IMAGE: python:3.7
   APP_PATH: src
 
@@ -28,17 +27,7 @@ variables:
   HELM_PATH: helm/secrets-operator
   HELM_VALUES_PATH: helm/secrets-operator/values.yaml
 
-# External used services
-  # HELM_REPO_URL: http://stable-charts-chartmuseum.helm-charts.svc.cluster.local:8080
-  HELM_REPO_URL: https://stable-charts.infra.bcc.gmbh
-  VERSION_CONTROL_URL: https://versionstore.infra.bcc.gmbh
-  SONAR_URL: https://sonar.infra.bcc.gmbh
 
-# Images for pipeline jobs
-  K8S_BASE_IMAGE: dtzar/helm-kubectl:2.12.3
-  FLAKE_BASE_IMAGE: pipelinecomponents/flake8:0.3.1
-  CURL_BASE_IMAGE: curlimages/curl:7.66.0
-  DOCKER_BASE_IMAGE: docker:stable-dind
 
 stages:
   - prepare
@@ -46,148 +35,46 @@ stages:
   - release
   - deploy
 
-.set hi tag:
-  tags:
-    - infra-k8s-intermediate
-
-.set lo tag:
-  tags:
-    - infra-k8s-low-performance
-
-
-# This template defines the correct procedure for logging into the Google Cloud Registry
-.docker registry auth:
-  extends: .set hi tag
-  image: ${DOCKER_BASE_IMAGE}
-  before_script:
-    - echo ${REGISTRY_PASS} | docker login -u _json_key --password-stdin https://eu.gcr.io
-
 ########################################################################
 # PREPARE STAGE                                                        #
 ########################################################################
 
 helm lint:
-  stage: prepare
-  extends: .set lo tag
-  image: ${K8S_BASE_IMAGE}
-  before_script:
-    - helm init --client-only
-    - cd ${HELM_PATH}
-    - rm -f .helmignore
-  script:
-    - helm lint | tee helm-lint.log
+  extends: .helm lint
 
 helm dry run:
-  stage: prepare
-  extends: .set lo tag
-  image: ${K8S_BASE_IMAGE}
-  script:
-    - helm init --client-only
-    - >
-      helm install
-      --dry-run
-      --namespace default
-      --name ${CI_PROJECT_NAME}-dry-run
-      --values ${HELM_VALUES_PATH}
-      ${HELM_PATH}
+  extends: .helm dry run
 
 check code quality:
-  stage: prepare
-  extends: .set lo tag
-  image: zaquestion/sonarqube-scanner
-  before_script:
-    - apk add nodejs --no-cache
-    - npm config set unsafe-perm true
-  script:
-    - sonar-scanner
-  allow_failure: true
+  extends: .check code quality
 
 python lint:
-  stage: prepare
-  extends: .set lo tag
-  image: ${FLAKE_BASE_IMAGE}
-  before_script:
-    - cd ${APP_PATH}
-  script:
-    - flake8 --max-line-length=140 --verbose . | tee py-lint.log
+  extends: .python lint
 
 helm connect stable repo:
-  stage: prepare
-  extends: .set lo tag
-  image: ${K8S_BASE_IMAGE}
-  script:
-    - helm init --client-only
-    - helm repo add --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} stable-infra-charts ${HELM_REPO_URL} || true
-    - helm search stable-infra-charts/${CI_PROJECT_NAME} --versions
-  only:
-    refs:
-      - master
-      - tags
+  extends: .helm connect stable repo
+
 
 ########################################################################
 # BUILD STAGE                                                          #
 ########################################################################
 
 docker image build:
-  stage: build
-  extends: .docker registry auth
-  script:
-    - docker build -t ${RELEASE_IMAGE_NAME} .
-    - docker push ${RELEASE_IMAGE_NAME}
-  only:
-    refs:
-      - tags
-
+  extends: .docker image build
 
 helm repo build:
-  stage: build
-  extends: .set lo tag
-  image: ${K8S_BASE_IMAGE}
-  script:
-    - cd ${HELM_PATH}
-    - helm init --client-only
-    - helm plugin install https://github.com/chartmuseum/helm-push
-    - helm repo add --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} stable-infra-charts ${HELM_REPO_URL}
-    - helm package . --version ${CI_COMMIT_TAG} --app-version ${CI_COMMIT_TAG}
-    - helm push $(ls *tgz) --username ${CHARTMUSEUM_STABLE_USER} --password ${CHARTMUSEUM_STABLE_PASS} ${HELM_REPO_URL}
-  only:
-    refs:
-      - tags
+  extends: .helm repo build
 
 ########################################################################
 # RELEASE STAGE                                                        #
 ########################################################################
 
 update versioncontrol:
-  stage: release
-  extends: .set lo tag
-  image: ${CURL_BASE_IMAGE}
-  script:
-    - >
-      curl -i -H "Content-Type: application/json" -X POST
-      -d "{\"name\":\"$CI_PROJECT_NAME\",\"version\":\"$CI_COMMIT_TAG\",\"appversion\":\"$CI_COMMIT_TAG\"}"
-      -u ${VERSIONCONTROL_USER}:${VERSIONCONTROL_PASS}
-      ${VERSION_CONTROL_URL}/api/v1/setversion
-  only:
-    refs:
-      - tags
+  extends: .update versioncontrol
 
 ########################################################################
 # DEPLOY STAGE                                                         #
 ########################################################################
 
 trigger deployment:
-  stage: deploy
-  extends: .set lo tag
-  image: ${CURL_BASE_IMAGE}
-  script:
-    - >
-      curl 
-      -X POST
-      -F token=${PIPELINE_TOKEN}
-      -F "ref=master"
-      -F "variables[SOURCE_REPOSITORY]=${CI_PROJECT_NAME}"
-      https://gitlab.com/api/v4/projects/17728807/trigger/pipeline
-  only:
-    refs:
-      - tags
+  extends: .trigger deployment
