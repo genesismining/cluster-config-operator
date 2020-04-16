@@ -33,7 +33,7 @@ stages:
   - prepare
   - build
   - release
-  - deploy
+  - trigger
 
 ########################################################################
 # PREPARE STAGE                                                        #
@@ -77,4 +77,4 @@ update versioncontrol:
 ########################################################################
 
 trigger deployment:
-  extends: .trigger deployment
+  extends: .gitlab trigger
