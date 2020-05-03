@@ -2,6 +2,14 @@ import kubernetes
 import json
 
 class KubernetesObject():
+    """
+    Generic Kubernetes Object.
+    Initializes the connection to the Kubernetes API Server
+
+    Attributes:
+        objectName: name of the object which has to be cloned
+        readNamespace: source namespace of the object which has to be cloned
+    """
     def __init__(self, objectName, readNamespace):
         kubernetes.config.load_incluster_config()
         self.v1Api = kubernetes.client.CoreV1Api()
@@ -10,15 +18,31 @@ class KubernetesObject():
 
 
 class ClusterConfigMap(KubernetesObject):
+    """
+    Class for storing secrets and applying them to a new
+    namespace if created.
+    Inherited by KubernetesObject.
+    Attributes:
+        objectName: see KubernetesObject class
+        readNamespace: see KubernetesObject class
+    """
     def __init__(self, objectName, readNamespace):
         super().__init__(objectName, readNamespace)
 
+    """
+    Reads the configured configmap
+    """
     def __getConfigMap(self):
         self.__configMap = self.v1Api.read_namespaced_config_map(
             name=self.objectName,
             namespace=self.readNamespace
         )
 
+    """
+    Applies the configured configmap to writeNamespace
+    Attributes:
+        writeNamespace: namespace where the configmap is applied to
+    """
     def apply(self, writeNamespace):
         self.__getConfigMap()
         self.__configMap.metadata.namespace = None
@@ -28,6 +52,11 @@ class ClusterConfigMap(KubernetesObject):
             body=self.__configMap
         )
 
+    """
+    Collects all configured configmaps out of config.json and
+    creates an array of ClusterConfigMap objects out of it.
+    Static Method.
+    """
     @staticmethod
     def collectConfig():
         objectList = []
@@ -43,15 +72,31 @@ class ClusterConfigMap(KubernetesObject):
                 
 
 class ClusterSecret(KubernetesObject):
+    """
+    Class for storing configmaps and applying them to a new
+    namespace if created.
+    Inherited by KubernetesObject.
+    Attributes:
+        objectName: see KubernetesObject class
+        readNamespace: see KubernetesObject class
+    """
     def __init__(self, objectName, readNamespace):
         super().__init__(objectName, readNamespace)
 
+    """
+    Reads the configured secret
+    """
     def __getSecret(self):
         self.__secret = self.v1Api.read_namespaced_secret(
             name=self.objectName,
             namespace=self.readNamespace
         )
 
+    """
+    Applies the configured secret to writeNamespace
+    Attributes:
+        writeNamespace: namespace where the secret is applied to
+    """
     def apply(self, writeNamespace):
         self.__getSecret()
         self.__secret.metadata.namespace = None
@@ -61,6 +106,11 @@ class ClusterSecret(KubernetesObject):
             body=self.__secret
         )
 
+    """
+    Collects all configured secrets out of config.json and
+    creates an array of ClusterSecret objects out of it.
+    Static Method.
+    """
     @staticmethod
     def collectConfig():
         objectList = []
