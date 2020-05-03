@@ -53,6 +53,17 @@ class ClusterConfigMap(KubernetesObject):
         )
 
     """
+    Applies the configured secret to all existing namespaces
+    """
+    def applyExistingNamespaces(self):
+        namespaces = self.v1Api.list_namespace()
+        for namespace in namespaces.items:
+            try:
+                self.apply(writeNamespace=namespace.metadata.name)
+            except kubernetes.client.rest.ApiException as e:
+                print(e)
+
+    """
     Collects all configured configmaps out of config.json and
     creates an array of ClusterConfigMap objects out of it.
     Static Method.
@@ -105,6 +116,17 @@ class ClusterSecret(KubernetesObject):
             namespace=writeNamespace,
             body=self.__secret
         )
+
+    """
+    Applies the configured secret to all existing namespaces
+    """
+    def applyExistingNamespaces(self):
+        namespaces = self.v1Api.list_namespace()
+        for namespace in namespaces.items:
+            try:
+                self.apply(writeNamespace=namespace.metadata.name)
+            except kubernetes.client.rest.ApiException as e:
+                print(e)
 
     """
     Collects all configured secrets out of config.json and
