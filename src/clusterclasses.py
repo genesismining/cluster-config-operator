@@ -29,15 +29,12 @@ class ClusterConfigMap(KubernetesObject):
     """
     def __init__(self, objectName, readNamespace):
         super().__init__(objectName, readNamespace)
-
-    """
-    Reads the configured configmap
-    """
-    def __getConfigMap(self):
         self.__configMap = self.v1Api.read_namespaced_config_map(
             name=self.objectName,
             namespace=self.readNamespace
         )
+        self.__configMap.metadata.namespace = None
+        self.__configMap.metadata.resource_version = None
 
     """
     Applies the configured configmap to writeNamespace
@@ -45,9 +42,6 @@ class ClusterConfigMap(KubernetesObject):
         writeNamespace: namespace where the configmap is applied to
     """
     def apply(self, writeNamespace):
-        self.__getConfigMap()
-        self.__configMap.metadata.namespace = None
-        self.__configMap.metadata.resource_version = None
         self.v1Api.create_namespaced_config_map(
             namespace=writeNamespace,
             body=self.__configMap
@@ -94,15 +88,12 @@ class ClusterSecret(KubernetesObject):
     """
     def __init__(self, objectName, readNamespace):
         super().__init__(objectName, readNamespace)
-
-    """
-    Reads the configured secret
-    """
-    def __getSecret(self):
         self.__secret = self.v1Api.read_namespaced_secret(
             name=self.objectName,
             namespace=self.readNamespace
         )
+        self.__secret.metadata.namespace = None
+        self.__secret.metadata.resource_version = None
 
     """
     Applies the configured secret to writeNamespace
@@ -110,9 +101,6 @@ class ClusterSecret(KubernetesObject):
         writeNamespace: namespace where the secret is applied to
     """
     def apply(self, writeNamespace):
-        self.__getSecret()
-        self.__secret.metadata.namespace = None
-        self.__secret.metadata.resource_version = None
         self.v1Api.create_namespaced_secret(
             namespace=writeNamespace,
             body=self.__secret
