@@ -1,0 +1,24 @@
+{
+    "configmaps": [
+        {
+            "name": "traefik",
+            "namespace": "kube-ingress"
+        },
+        {
+            "name": "kube-flannel-cfg",
+            "namespace": "kube-system"
+        },
+        {}
+    ],
+    "secrets": [
+        {
+            "name": "traefik-default-cert",
+            "namespace": "kube-ingress"
+        },
+        {
+            "name": "traefik-dnsprovider-config",
+            "namespace": "kube-ingress"
+        },
+        {}
+    ]
+}
