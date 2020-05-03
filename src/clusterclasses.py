@@ -1,6 +1,7 @@
 import kubernetes
 import json
 
+
 class KubernetesObject():
     """
     Generic Kubernetes Object.
@@ -80,7 +81,7 @@ class ClusterConfigMap(KubernetesObject):
                     configMap['namespace']
                 ))
         return objectList
-                
+
 
 class ClusterSecret(KubernetesObject):
     """

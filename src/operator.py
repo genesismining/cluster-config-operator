@@ -28,7 +28,7 @@ def createResources(body, spec, **kwargs):
     clusterSecrets = ClusterSecret.collectConfig()
 
     for clusterConfigMap in clusterConfigMaps:
-            clusterConfigMap.apply(namespace)
+        clusterConfigMap.apply(namespace)
 
     for clusterSecret in clusterSecrets:
-            clusterSecret.apply(namespace)
+        clusterSecret.apply(namespace)
