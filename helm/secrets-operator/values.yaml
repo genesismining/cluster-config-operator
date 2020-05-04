@@ -1,19 +1,124 @@
+# Default values for Cluster-Config Operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+## Provide a name in place of `app:` labels
+##
+nameOverride: ""
+
+## Provide a name to substitute for the full names of resources
+##
+fullnameOverride: ""
+
+## Additional labels for all resourees
+##
+commonLabels: {}
+
+crd:
+  clustersecret:
+
+## Create clustersecret CRD
+##
+    enabled: true
+
+## Additional labels for the CRD
+##
+    crdLabels: {}
+
+  clusterconfigmap:
+
+## Create clusterconfigmap CRD
+##
+    enabled: true
+
+## Additional labels for the CRD
+##
+    crdLabels: {}
+
+## Deploy role based access control objects
+## ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+##
 rbac:
-  create: true
+  enabled: true
+
+  ## Only used if rbac.enabled == false
+  ##
   serviceAccount: foo
 
+## Default values for the Cluster-Config Operator image
+##
 image:
   repository: eu.gcr.io/internal-services-272317/secrets-operator
-  version: 1.0.0
+  version: 2.0.0
   pullPolicy: IfNotPresent
 
-namespace: secrets-operator-production
+## Number of TLS exporter replicas desired
+##
 replicas: 1
 
-# If false a already existing secret has to be configured
-# If true a secret will be deployed within that release
+## Labels to add to the pod
+##
+podLabels: {}
 
-secret:
-  internal: false
-  name: somesecret
-  namespace: somenamespace
+## Annotations to add to the pod
+##
+podAnnotations: {}
+
+## Priority class assigned to the Pods
+##
+priorityClassName: ""
+
+## Reference to one or more secrets to be used when pulling images
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+##
+imagePullSecrets:
+  enabled: false
+
+  ## Only used of imagePullSecrets.enabled == true
+  ##
+  config_json: |
+    { some stuff }
+
+## Define resources requests and limits for single Pods.
+## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources: {}
+
+## Define LivenessProbes for the containers in the pod
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+##
+livenessProbe: {}
+
+## Define ReadinessProbes for the containers in the pod
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+##
+readinessProbe: {}
+
+## Define which Nodes the Pods are scheduled on.
+## ref: https://kubernetes.io/docs/user-guide/node-selection/
+##  
+nodeSelector: {}
+
+## Assign custom affinity rules to the alertmanager instance
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+##
+affinity: {}
+# nodeAffinity:
+#   requiredDuringSchedulingIgnoredDuringExecution:
+#     nodeSelectorTerms:
+#     - matchExpressions:
+#       - key: kubernetes.io/e2e-az-name
+#         operator: In
+#         values:
+#         - e2e-az1
+#         - e2e-az2
+
+## If specified, the pod's tolerations.
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: []
+# - key: "key"
+#   operator: "Equal"
+#   value: "value"
+#   effect: "NoSchedule"

@@ -1,10 +1,41 @@
-{{- if .Values.rbac.create -}}
+{{- if .Values.rbac.enabled -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{.Release.Name}}-clusterrole
+  name: {{ template "cluster-config.fullname" . }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ template "cluster-config.name" . }}
+{{- include "cluster-config.labels" . | indent 4 }}
 rules:
-  - apiGroups: [""]
-    resources: ["*"]
-    verbs: ["*"]
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - genesis-mining.com
+    resources:
+      - clustersecrets
+      - clusterconfigmaps
+    verbs: 
+      - get
+      - list
+      - watch
 {{- end -}}

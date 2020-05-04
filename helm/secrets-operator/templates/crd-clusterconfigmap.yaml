@@ -1,0 +1,49 @@
+{{- if .Values.crd.clusterconfigmap.enabled -}}
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterconfigmaps.genesis-mining.com
+  labels:
+    app: {{ template "cluster-config.name" . }}
+{{- include "cluster-config.labels" . | indent 4 }}
+{{- if .Values.crd.clusterconfigmap.crdLabels }}
+{{- toYaml .Values.crd.clusterconfigmap.crdLabels | indent 4}}
+{{- end}}
+spec:
+  scope: Cluster
+  group: genesis-mining.com
+  version: v1beta1
+  names:
+    kind: ClusterConfigMap
+    plural: clusterconfigmaps
+    singular: clusterconfigmap
+    shortNames:
+      - ccm
+  additionalPrinterColumns:
+    - JSONPath: .spec.name
+      description: Name of the upstream configmap
+      name: Name
+      type: string
+    - JSONPath: .spec.namespace
+      description: Namespace of the upstream configmap
+      name: Namespace
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+  validation:
+    openAPIV3Schema:
+      description: Points to a configmap which will be deployed clusterwide
+      properties:
+        spec:
+          required:
+            - name
+            - namespace
+          properties:
+            name:
+              type: "string"
+              minimum: 1
+            namespace:
+              type: "string"
+              minimum: 1
+{{- end -}}
