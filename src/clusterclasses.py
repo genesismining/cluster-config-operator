@@ -17,9 +17,43 @@ class KubernetesObject:
         self.crd_api = kubernetes.client.CustomObjectsApi()
         self.object_name = object_name
         self.read_namespace = read_namespace
-        self.include_pattern = []
         self.exclude_pattern = []
+        self.include_pattern = []
 
+
+    def get_includes_and_excludes(self, custom_object):
+        try:
+            for pattern in custom_object['spec']['includeNamespaces']:
+                self.include_pattern.append(pattern)
+        except KeyError:
+            pass
+
+        try:
+            for pattern in custom_object['spec']['excludeNamespaces']:
+                self.exclude_pattern.append(pattern)
+        except KeyError:
+            pass
+
+    def analyze_includes_and_excludes(self, write_namespace):
+        if len(self.include_pattern) == 0 and len(self.exclude_pattern) == 0:
+            # No patterns defined
+            apply = True
+        else:
+            if len(self.exclude_pattern) > 0:
+                # Exclude matches? > False
+                apply = True
+                for pattern in self.exclude_pattern:
+                    if re.match(pattern, write_namespace):
+                        apply = False
+                        break
+            if len(self.include_pattern) > 0:
+                # Include matches? > True
+                apply = False
+                for pattern in self.include_pattern:
+                    if re.match(pattern, write_namespace):
+                        apply = True
+                        break
+        return apply
 
 class ClusterConfigMap(KubernetesObject):
     """
@@ -45,17 +79,7 @@ class ClusterConfigMap(KubernetesObject):
             plural='clusterconfigmaps',
             name=crd_name
         )
-        try:
-            for pattern in custom_object['spec']['includeNamespaces']:
-                self.include_pattern.append(pattern)
-        except KeyError:
-            pass
-
-        try:
-            for pattern in custom_object['spec']['excludeNamespaces']:
-                self.exclude_pattern.append(pattern)
-        except KeyError:
-            pass
+        super().get_includes_and_excludes(custom_object)
 
     """
     Applies the configured configmap to write_namespace
@@ -63,25 +87,7 @@ class ClusterConfigMap(KubernetesObject):
         write_namespace: namespace where the configmap is applied to
     """
     def apply_in_new_namespace(self, write_namespace):
-        if len(self.include_pattern) == 0 and len(self.exclude_pattern) == 0:
-            # No patterns defined
-            deploy_cm = True
-        else:
-            if len(self.exclude_pattern) > 0:
-                # Exclude matches? > False
-                deploy_cm = True
-                for pattern in self.exclude_pattern:
-                    if re.match(pattern, write_namespace):
-                        deploy_cm = False
-                        break
-            if len(self.include_pattern) > 0:
-                # Include matches? > True
-                deploy_cm = False
-                for pattern in self.include_pattern:
-                    if re.match(pattern, write_namespace):
-                        deploy_cm = True
-                        break
-        if deploy_cm:
+        if self.analyze_includes_and_excludes(write_namespace):
             self.v1_api.create_namespaced_config_map(
                 namespace=write_namespace,
                 body=self.__config_map
@@ -161,17 +167,8 @@ class ClusterSecret(KubernetesObject):
             plural='clustersecrets',
             name=crd_name
         )
-        try:
-            for pattern in custom_object['spec']['includeNamespaces']:
-                self.include_pattern.append(pattern)
-        except KeyError:
-            pass
+        self.get_includes_and_excludes(custom_object)
 
-        try:
-            for pattern in custom_object['spec']['excludeNamespaces']:
-                self.exclude_pattern.append(pattern)
-        except KeyError:
-            pass
 
     """
     Applies the configured secret to write_namespace
@@ -179,25 +176,7 @@ class ClusterSecret(KubernetesObject):
         write_namespace: namespace where the secret is applied to
     """
     def apply_in_new_namespace(self, write_namespace):
-        if len(self.include_pattern) == 0 and len(self.exclude_pattern) == 0:
-            # No patterns defined
-            deploy_secret = True
-        else:
-            if len(self.exclude_pattern) > 0:
-                # Exclude matches? > False
-                deploy_secret = True
-                for pattern in self.exclude_pattern:
-                    if re.match(pattern, write_namespace):
-                        deploy_secret = False
-                        break
-            if len(self.include_pattern) > 0:
-                # Include matches? > True
-                deploy_secret = False
-                for pattern in self.include_pattern:
-                    if re.match(pattern, write_namespace):
-                        deploy_secret = True
-                        break
-        if deploy_secret:
+        if self.analyze_includes_and_excludes(write_namespace):
             self.v1_api.create_namespaced_secret(
                 namespace=write_namespace,
                 body=self.__secret
