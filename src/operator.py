@@ -1,5 +1,5 @@
 import kopf
-from .clusterclasses import ClusterSecret, ClusterConfigMap
+from clusterclasses import ClusterSecret, ClusterConfigMap
 
 __author__ = "Christopher Becker"
 __license__ = "GNU GPLv3"
