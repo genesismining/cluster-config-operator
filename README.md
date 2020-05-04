@@ -114,3 +114,7 @@ No Roadmap currently
 ## Licence
 
 * GNU GPLv3
+
+## Thanks to
+
+* zalando-incubator (https://github.com/zalando-incubator/kopf)
