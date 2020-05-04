@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-config
+  namespace: default
+data:
+  special.how: very
+  special.type: charm
+---
+apiVersion: genesis-mining.com/v1beta1
+kind: ClusterConfigMap
+metadata:
+  name: example-config
+spec:
+  name: example-config
+  namespace: default
+  excludeNamespaces:
+    - ^lesson[0-9]*
