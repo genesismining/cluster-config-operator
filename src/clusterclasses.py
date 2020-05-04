@@ -1,23 +1,24 @@
 import kubernetes
 import re
 
-class KubernetesObject():
+
+class KubernetesObject:
     """
     Generic Kubernetes Object.
     Initializes the connection to the Kubernetes API Server
 
     Attributes:
-        objectName: name of the object which has to be cloned
-        readNamespace: source namespace of the object which has to be cloned
+        object_name: name of the object which has to be cloned
+        read_namespace: source namespace of the object which has to be cloned
     """
-    def __init__(self, objectName, readNamespace):
+    def __init__(self, object_name, read_namespace):
         kubernetes.config.load_incluster_config()
-        self.v1Api = kubernetes.client.CoreV1Api()
-        self.crdApi = kubernetes.client.CustomObjectsApi()
-        self.objectName = objectName
-        self.readNamespace = readNamespace
-        self.includePattern = []
-        self.excludePattern = []
+        self.v1_api = kubernetes.client.CoreV1Api()
+        self.crd_api = kubernetes.client.CustomObjectsApi()
+        self.object_name = object_name
+        self.read_namespace = read_namespace
+        self.include_pattern = []
+        self.exclude_pattern = []
 
 
 class ClusterConfigMap(KubernetesObject):
@@ -26,87 +27,87 @@ class ClusterConfigMap(KubernetesObject):
     namespace if created.
     Inherited by KubernetesObject.
     Attributes:
-        objectName: see KubernetesObject class
-        readNamespace: see KubernetesObject class
+        object_name: see KubernetesObject class
+        read_namespace: see KubernetesObject class
     """
-    def __init__(self, objectName, readNamespace, crdName):
-        super().__init__(objectName, readNamespace)
-        self.__configMap = self.v1Api.read_namespaced_config_map(
-            name=self.objectName,
-            namespace=self.readNamespace
+    def __init__(self, object_name, read_namespace, crd_name):
+        super().__init__(object_name, read_namespace)
+        self.__config_map = self.v1_api.read_namespaced_config_map(
+            name=self.object_name,
+            namespace=self.read_namespace
         )
-        self.__configMap.metadata.namespace = None
-        self.__configMap.metadata.resource_version = None
+        self.__config_map.metadata.namespace = None
+        self.__config_map.metadata.resource_version = None
 
-        customObject = self.crdApi.get_cluster_custom_object(
+        custom_object = self.crd_api.get_cluster_custom_object(
             group='genesis-mining.com',
             version='v1beta1',
             plural='clusterconfigmaps',
-            name=crdName
+            name=crd_name
         )
         try:
-            for pattern in customObject['spec']['includeNamespaces']:
-                self.includePattern.append(pattern)
+            for pattern in custom_object['spec']['includeNamespaces']:
+                self.include_pattern.append(pattern)
         except KeyError:
             pass
         
         try:
-            for pattern in customObject['spec']['excludeNamespaces']:
-                self.excludePattern.append(pattern)
+            for pattern in custom_object['spec']['excludeNamespaces']:
+                self.exclude_pattern.append(pattern)
         except KeyError:
             pass
 
     """
-    Applies the configured configmap to writeNamespace
+    Applies the configured configmap to write_namespace
     Attributes:
-        writeNamespace: namespace where the configmap is applied to
+        write_namespace: namespace where the configmap is applied to
     """
-    def applyInNewNamespace(self, writeNamespace):
-        if len(self.includePattern) == 0 and len(self.excludePattern) == 0:
+    def apply_in_new_namespace(self, write_namespace):
+        if len(self.include_pattern) == 0 and len(self.exclude_pattern) == 0:
             # No patterns defined
-            deployCM = True
+            deploy_cm = True
         else:
-            if len(self.excludePattern) > 0:
+            if len(self.exclude_pattern) > 0:
                 # Exclude matches? > False
-                deployCM = True
-                for pattern in self.excludePattern:
-                    if re.match(pattern, writeNamespace):
-                        deployCM = False
+                deploy_cm = True
+                for pattern in self.exclude_pattern:
+                    if re.match(pattern, write_namespace):
+                        deploy_cm = False
                         break
-            if len(self.includePattern) > 0:
+            if len(self.include_pattern) > 0:
                 # Include matches? > True
-                deployCM = False
-                for pattern in self.includePattern:
-                    if re.match(pattern, writeNamespace):
-                        deployCM = True
+                deploy_cm = False
+                for pattern in self.include_pattern:
+                    if re.match(pattern, write_namespace):
+                        deploy_cm = True
                         break
-        if deployCM:
-            self.v1Api.create_namespaced_config_map(
-                namespace=writeNamespace,
-                body=self.__configMap
+        if deploy_cm:
+            self.v1_api.create_namespaced_config_map(
+                namespace=write_namespace,
+                body=self.__config_map
             )
 
     """
     Applies the configured configmap to all existing namespaces
     """
-    def applyInExistingNamespaces(self):
-        namespaces = self.v1Api.list_namespace()
+    def apply_in_existing_namespaces(self):
+        namespaces = self.v1_api.list_namespace()
         for namespace in namespaces.items:
             try:
-                self.applyInNewNamespace(writeNamespace=namespace.metadata.name)
+                self.apply_in_new_namespace(write_namespace=namespace.metadata.name)
             except kubernetes.client.rest.ApiException as e:
                 print(e)
 
     """
     Deletes all configured configmaps
     """
-    def deleteInExistingNamespaces(self):
-        namespaces = self.v1Api.list_namespace()
+    def delete_in_existing_namespaces(self):
+        namespaces = self.v1_api.list_namespace()
         for namespace in namespaces.items:
-            if not namespace.metadata.name == self.readNamespace:
+            if not namespace.metadata.name == self.read_namespace:
                 try:
-                    self.v1Api.delete_namespaced_config_map(
-                        name=self.objectName,
+                    self.v1_api.delete_namespaced_config_map(
+                        name=self.object_name,
                         namespace=namespace.metadata.name
                     )
                 except kubernetes.client.rest.ApiException:
@@ -118,22 +119,22 @@ class ClusterConfigMap(KubernetesObject):
     Static Method.
     """
     @staticmethod
-    def collectConfigMaps():
-        clusterConfigMapList = []
+    def collect_config_maps():
+        cluster_config_map_list = []
         kubernetes.config.load_incluster_config()
-        crdApi = kubernetes.client.CustomObjectsApi()
-        customObjectList = crdApi.list_cluster_custom_object(
+        crd_api = kubernetes.client.CustomObjectsApi()
+        custom_objects_list = crd_api.list_cluster_custom_object(
             group='genesis-mining.com',
             version='v1beta1',
             plural='clusterconfigmaps'
         )
-        for customObject in customObjectList['items']:
-            clusterConfigMapList.append(ClusterConfigMap(
-                customObject['spec']['name'],
-                customObject['spec']['namespace'],
-                customObject['metadata']['name']
+        for custom_object in custom_objects_list['items']:
+            cluster_config_map_list.append(ClusterConfigMap(
+                custom_object['spec']['name'],
+                custom_object['spec']['namespace'],
+                custom_object['metadata']['name']
             ))
-        return clusterConfigMapList
+        return cluster_config_map_list
 
 
 class ClusterSecret(KubernetesObject):
@@ -142,87 +143,87 @@ class ClusterSecret(KubernetesObject):
     namespace if created.
     Inherited by KubernetesObject.
     Attributes:
-        objectName: see KubernetesObject class
-        readNamespace: see KubernetesObject class
+        object_name: see KubernetesObject class
+        read_namespace: see KubernetesObject class
     """
-    def __init__(self, objectName, readNamespace, crdName):
-        super().__init__(objectName, readNamespace)
-        self.__secret = self.v1Api.read_namespaced_secret(
-            name=self.objectName,
-            namespace=self.readNamespace
+    def __init__(self, object_name, read_namespace, crd_name):
+        super().__init__(object_name, read_namespace)
+        self.__secret = self.v1_api.read_namespaced_secret(
+            name=self.object_name,
+            namespace=self.read_namespace
         )
         self.__secret.metadata.namespace = None
         self.__secret.metadata.resource_version = None
 
-        customObject = self.crdApi.get_cluster_custom_object(
+        custom_object = self.crd_api.get_cluster_custom_object(
             group='genesis-mining.com',
             version='v1beta1',
             plural='clustersecrets',
-            name=crdName
+            name=crd_name
         )
         try:
-            for pattern in customObject['spec']['includeNamespaces']:
-                self.includePattern.append(pattern)
+            for pattern in custom_object['spec']['includeNamespaces']:
+                self.include_pattern.append(pattern)
         except KeyError:
             pass
         
         try:
-            for pattern in customObject['spec']['excludeNamespaces']:
-                self.excludePattern.append(pattern)
+            for pattern in custom_object['spec']['excludeNamespaces']:
+                self.exclude_pattern.append(pattern)
         except KeyError:
             pass
 
     """
-    Applies the configured secret to writeNamespace
+    Applies the configured secret to write_namespace
     Attributes:
-        writeNamespace: namespace where the secret is applied to
+        write_namespace: namespace where the secret is applied to
     """
-    def applyInNewNamespace(self, writeNamespace):
-        if len(self.includePattern) == 0 and len(self.excludePattern) == 0:
+    def apply_in_new_namespace(self, write_namespace):
+        if len(self.include_pattern) == 0 and len(self.exclude_pattern) == 0:
             # No patterns defined
-            deploySecret = True
+            deploy_secret = True
         else:
-            if len(self.excludePattern) > 0:
+            if len(self.exclude_pattern) > 0:
                 # Exclude matches? > False
-                deploySecret = True
-                for pattern in self.excludePattern:
-                    if re.match(pattern, writeNamespace):
-                        deploySecret = False
+                deploy_secret = True
+                for pattern in self.exclude_pattern:
+                    if re.match(pattern, write_namespace):
+                        deploy_secret = False
                         break
-            if len(self.includePattern) > 0:
+            if len(self.include_pattern) > 0:
                 # Include matches? > True
-                deploySecret = False
-                for pattern in self.includePattern:
-                    if re.match(pattern, writeNamespace):
-                        deploySecret = True
+                deploy_secret = False
+                for pattern in self.include_pattern:
+                    if re.match(pattern, write_namespace):
+                        deploy_secret = True
                         break
-        if deploySecret:
-            self.v1Api.create_namespaced_secret(
-                namespace=writeNamespace,
+        if deploy_secret:
+            self.v1_api.create_namespaced_secret(
+                namespace=write_namespace,
                 body=self.__secret
             )
 
     """
     Applies the configured secret to all existing namespaces
     """
-    def applyInExistingNamespaces(self):
-        namespaces = self.v1Api.list_namespace()
+    def apply_in_existing_namespaces(self):
+        namespaces = self.v1_api.list_namespace()
         for namespace in namespaces.items:
             try:
-                self.applyInNewNamespace(writeNamespace=namespace.metadata.name)
+                self.apply_in_new_namespace(write_namespace=namespace.metadata.name)
             except kubernetes.client.rest.ApiException as e:
                 print(e)
 
     """
     Deletes all configured secrets
     """
-    def deleteInExistingNamespaces(self):
-        namespaces = self.v1Api.list_namespace()
+    def delete_in_existing_namespaces(self):
+        namespaces = self.v1_api.list_namespace()
         for namespace in namespaces.items:
-            if not namespace.metadata.name == self.readNamespace:
+            if not namespace.metadata.name == self.read_namespace:
                 try:
-                    self.v1Api.delete_namespaced_secret(
-                        name=self.objectName,
+                    self.v1_api.delete_namespaced_secret(
+                        name=self.object_name,
                         namespace=namespace.metadata.name
                     )
                 except kubernetes.client.rest.ApiException:
@@ -234,19 +235,19 @@ class ClusterSecret(KubernetesObject):
     Static Method.
     """
     @staticmethod
-    def collectSecrets():
-        clusterSecretList = []
+    def collect_secrets():
+        cluster_secret_list = []
         kubernetes.config.load_incluster_config()
-        crdApi = kubernetes.client.CustomObjectsApi()
-        customObjectList = crdApi.list_cluster_custom_object(
+        crd_api = kubernetes.client.CustomObjectsApi()
+        custom_object_list = crd_api.list_cluster_custom_object(
             group='genesis-mining.com',
             version='v1beta1',
             plural='clustersecrets'
         )
-        for customObject in customObjectList['items']:
-            clusterSecretList.append(ClusterSecret(
-                customObject['spec']['name'],
-                customObject['spec']['namespace'],
-                customObject['metadata']['name']
+        for custom_object in custom_object_list['items']:
+            cluster_secret_list.append(ClusterSecret(
+                custom_object['spec']['name'],
+                custom_object['spec']['namespace'],
+                custom_object['metadata']['name']
             ))
-        return clusterSecretList
+        return cluster_secret_list
