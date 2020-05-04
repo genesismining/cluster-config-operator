@@ -35,10 +35,10 @@ def createResources(body, spec, **kwargs):
     clusterSecrets = ClusterSecret.collectSecrets()
 
     for clusterConfigMap in clusterConfigMaps:
-        clusterConfigMap.apply(namespace)
+        clusterConfigMap.applyInNewNamespace(namespace)
 
     for clusterSecret in clusterSecrets:
-        clusterSecret.apply(namespace)
+        clusterSecret.applyInNewNamespace(namespace)
 
 
 """

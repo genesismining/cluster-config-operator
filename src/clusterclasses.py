@@ -40,7 +40,7 @@ class ClusterConfigMap(KubernetesObject):
     Attributes:
         writeNamespace: namespace where the configmap is applied to
     """
-    def apply(self, writeNamespace):
+    def applyInNewNamespace(self, writeNamespace):
         self.v1Api.create_namespaced_config_map(
             namespace=writeNamespace,
             body=self.__configMap
@@ -53,7 +53,7 @@ class ClusterConfigMap(KubernetesObject):
         namespaces = self.v1Api.list_namespace()
         for namespace in namespaces.items:
             try:
-                self.apply(writeNamespace=namespace.metadata.name)
+                self.applyInNewNamespace(writeNamespace=namespace.metadata.name)
             except kubernetes.client.rest.ApiException as e:
                 print(e)
 
@@ -115,7 +115,7 @@ class ClusterSecret(KubernetesObject):
     Attributes:
         writeNamespace: namespace where the secret is applied to
     """
-    def apply(self, writeNamespace):
+    def applyInNewNamespace(self, writeNamespace):
         self.v1Api.create_namespaced_secret(
             namespace=writeNamespace,
             body=self.__secret
@@ -128,7 +128,7 @@ class ClusterSecret(KubernetesObject):
         namespaces = self.v1Api.list_namespace()
         for namespace in namespaces.items:
             try:
-                self.apply(writeNamespace=namespace.metadata.name)
+                self.applyInNewNamespace(writeNamespace=namespace.metadata.name)
             except kubernetes.client.rest.ApiException as e:
                 print(e)
 
