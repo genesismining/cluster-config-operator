@@ -51,7 +51,7 @@ rbac:
 image:
   repository: eu.gcr.io/internal-services-272317/clusterconfig
   version: 2.0.0-test1
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 ## Number of TLS exporter replicas desired
 ##

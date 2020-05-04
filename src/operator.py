@@ -13,7 +13,8 @@ Creation of new ClusterObjects or new Namespaces
 def createClusterConfigMap(body, spec, **kwargs):
     clusterConfigMap = ClusterConfigMap(
         body['spec']['name'],
-        body['spec']['namespace']
+        body['spec']['namespace'],
+        body['metadata']['name']
     )
     clusterConfigMap.applyInExistingNamespaces()
 
@@ -22,7 +23,8 @@ def createClusterConfigMap(body, spec, **kwargs):
 def createClusterSecret(body, spec, **kwargs):
     clusterSecret = ClusterSecret(
         body['spec']['name'],
-        body['spec']['namespace']
+        body['spec']['namespace'],
+        body['metadata']['name']
     )
     clusterSecret.applyInExistingNamespaces()
 
@@ -40,7 +42,6 @@ def createResources(body, spec, **kwargs):
     for clusterSecret in clusterSecrets:
         clusterSecret.applyInNewNamespace(namespace)
 
-
 """
 Deletion of ClusterObjects
 """
@@ -48,7 +49,8 @@ Deletion of ClusterObjects
 def deleteClusterConfigMap(body, spec, **kwargs):
     clusterConfigMap = ClusterConfigMap(
         body['spec']['name'],
-        body['spec']['namespace']
+        body['spec']['namespace'],
+        body['metadata']['name']
     )
     clusterConfigMap.deleteInExistingNamespaces()
 
@@ -57,6 +59,20 @@ def deleteClusterConfigMap(body, spec, **kwargs):
 def deleteClusterSecret(body, spec, **kwargs):
     clusterSecret = ClusterSecret(
         body['spec']['name'],
-        body['spec']['namespace']
+        body['spec']['namespace'],
+        body['metadata']['name']
     )
     clusterSecret.deleteInExistingNamespaces()
+
+"""
+Updating of ClusterObjects
+"""
+@kopf.on.update('genesis-mining.com', 'v1beta1', 'clusterconfigmaps')
+def updateClusterConfigMap(body, spec, **kwargs):
+    deleteClusterConfigMap(body=body, spec=spec)
+    createClusterConfigMap(body=body, spec=spec)
+
+@kopf.on.update('genesis-mining.com', 'v1beta1', 'clustersecrets')
+def updateClusterSecret(body, spec, **kwargs):
+    deleteClusterSecret(body=body, spec=spec)
+    createClusterSecret(body=body, spec=spec)

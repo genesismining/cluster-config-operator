@@ -30,6 +30,7 @@ rules:
       - get
       - list
       - watch
+      - patch
   - apiGroups:
       - genesis-mining.com
     resources:

@@ -34,6 +34,8 @@ spec:
   validation:
     openAPIV3Schema:
       description: Points to a configmap which will be deployed clusterwide
+      metadata:
+        type: object
       properties:
         spec:
           required:
@@ -41,9 +43,15 @@ spec:
             - namespace
           properties:
             name:
-              type: "string"
-              minimum: 1
+              type: string
+              description: Name of the configmap used for cloning
             namespace:
-              type: "string"
-              minimum: 1
+              type: string
+              description: Namespace of the configmap used for cloning
+            includeNamespaces:
+              type: array
+              description: Only namespaces with matching pattern are used
+            excludeNamespaces:
+              type: array
+              description: No namespaces with matching pattern are used
 {{- end -}}

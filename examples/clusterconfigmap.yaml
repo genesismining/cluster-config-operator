@@ -14,3 +14,5 @@ metadata:
 spec:
   name: example-config
   namespace: default
+  excludeNamespaces:
+    - ^lesson[0-9]*
