@@ -1,34 +1,62 @@
 import kopf
 from clusterclasses import ClusterSecret, ClusterConfigMap
-from os import environ
 
 __author__ = "Christopher Becker"
 __license__ = "GNU GPLv3"
 __email__ = "christopher.becker@genesis-group.com"
 
-# Apply configured objects to all namespaces initally
-if environ.get('APPLY_EXISTING') == 'true':
-    # Get the configuration
-    clusterConfigMaps = ClusterConfigMap.collectConfig()
-    clusterSecrets = ClusterSecret.collectConfig()
 
-    for clusterConfigMap in clusterConfigMaps:
-        clusterConfigMap.applyExistingNamespaces()
+"""
+Creation of new ClusterObjects or new Namespaces
+"""
+@kopf.on.create('genesis-mining.com', 'v1beta1', 'clusterconfigmaps')
+def createClusterConfigMap(body, spec, **kwargs):
+    clusterConfigMap = ClusterConfigMap(
+        body['spec']['name'],
+        body['spec']['namespace']
+    )
+    clusterConfigMap.applyInExistingNamespaces()
 
-    for clusterSecret in clusterSecrets:
-        clusterSecret.applyExistingNamespaces()
 
-# Apply configured objects to new created namespace
+@kopf.on.create('genesis-mining.com', 'v1beta1', 'clustersecrets')
+def createClusterSecret(body, spec, **kwargs):
+    clusterSecret = ClusterSecret(
+        body['spec']['name'],
+        body['spec']['namespace']
+    )
+    clusterSecret.applyInExistingNamespaces()
+
+
 @kopf.on.create('', 'v1', 'namespaces')
 def createResources(body, spec, **kwargs):
     namespace = body['metadata']['name']
 
-    # Get the configuration
-    clusterConfigMaps = ClusterConfigMap.collectConfig()
-    clusterSecrets = ClusterSecret.collectConfig()
+    clusterConfigMaps = ClusterConfigMap.collectConfigMaps()
+    clusterSecrets = ClusterSecret.collectSecrets()
 
     for clusterConfigMap in clusterConfigMaps:
         clusterConfigMap.apply(namespace)
 
     for clusterSecret in clusterSecrets:
         clusterSecret.apply(namespace)
+
+
+"""
+Deletion of ClusterObjects
+"""
+@kopf.on.delete('genesis-mining.com', 'v1beta1', 'clusterconfigmaps')
+def deleteClusterConfigMap(body, spec, **kwargs):
+    clusterConfigMap = ClusterConfigMap(
+        body['spec']['name'],
+        body['spec']['namespace']
+    )
+    clusterConfigMap.deleteInExistingNamespaces()
+
+
+@kopf.on.delete('genesis-mining.com', 'v1beta1', 'clustersecrets')
+def deleteClusterSecret(body, spec, **kwargs):
+    clusterSecret = ClusterSecret(
+        body['spec']['name'],
+        body['spec']['namespace']
+    )
+    clusterSecret.deleteInExistingNamespaces()

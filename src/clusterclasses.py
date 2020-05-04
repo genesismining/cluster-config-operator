@@ -1,5 +1,4 @@
 import kubernetes
-import json
 
 
 class KubernetesObject():
@@ -48,9 +47,9 @@ class ClusterConfigMap(KubernetesObject):
         )
 
     """
-    Applies the configured secret to all existing namespaces
+    Applies the configured configmap to all existing namespaces
     """
-    def applyExistingNamespaces(self):
+    def applyInExistingNamespaces(self):
         namespaces = self.v1Api.list_namespace()
         for namespace in namespaces.items:
             try:
@@ -59,22 +58,38 @@ class ClusterConfigMap(KubernetesObject):
                 print(e)
 
     """
-    Collects all configured configmaps out of config.json and
+    Deletes all configured configmaps
+    """
+    def deleteInExistingNamespaces(self):
+        namespaces = self.v1Api.list_namespace()
+        for namespace in namespaces.items:
+            if not namespace.metadata.name == self.readNamespace:
+                self.v1Api.delete_namespaced_config_map(
+                    name=self.objectName,
+                    namespace=namespace.metadata.name
+                )
+
+    """
+    Collects all configured configmaps out of CRDs and
     creates an array of ClusterConfigMap objects out of it.
     Static Method.
     """
     @staticmethod
-    def collectConfig():
-        objectList = []
-        with open('config.json') as configFile:
-            configMaps = json.load(configFile)
-            del configMaps['configmaps'][-1]
-            for configMap in configMaps['configmaps']:
-                objectList.append(ClusterConfigMap(
-                    configMap['name'],
-                    configMap['namespace']
-                ))
-        return objectList
+    def collectConfigMaps():
+        clusterConfigMapList = []
+        kubernetes.config.load_incluster_config()
+        crdApi = kubernetes.client.CustomObjectsApi()
+        customObjectList = crdApi.list_cluster_custom_object(
+            group='genesis-mining.com',
+            version='v1beta1',
+            plural='clusterconfigmaps'
+        )
+        for customObject in customObjectList['items']:
+            clusterConfigMapList.append(ClusterConfigMap(
+                customObject['spec']['name'],
+                customObject['spec']['namespace']
+            ))
+        return clusterConfigMapList
 
 
 class ClusterSecret(KubernetesObject):
@@ -109,7 +124,7 @@ class ClusterSecret(KubernetesObject):
     """
     Applies the configured secret to all existing namespaces
     """
-    def applyExistingNamespaces(self):
+    def applyInExistingNamespaces(self):
         namespaces = self.v1Api.list_namespace()
         for namespace in namespaces.items:
             try:
@@ -118,19 +133,35 @@ class ClusterSecret(KubernetesObject):
                 print(e)
 
     """
-    Collects all configured secrets out of config.json and
+    Deletes all configured secrets
+    """
+    def deleteInExistingNamespaces(self):
+        namespaces = self.v1Api.list_namespace()
+        for namespace in namespaces.items:
+            if not namespace.metadata.name == self.readNamespace:
+                self.v1Api.delete_namespaced_secret(
+                    name=self.objectName,
+                    namespace=namespace.metadata.name
+                )
+
+    """
+    Collects all configured secrets out of CRDs and
     creates an array of ClusterSecret objects out of it.
     Static Method.
     """
     @staticmethod
-    def collectConfig():
-        objectList = []
-        with open('config.json') as configFile:
-            secrets = json.load(configFile)
-            del secrets['secrets'][-1]
-            for secret in secrets['secrets']:
-                objectList.append(ClusterSecret(
-                    secret['name'],
-                    secret['namespace']
-                ))
-        return objectList
+    def collectSecrets():
+        clusterSecretList = []
+        kubernetes.config.load_incluster_config()
+        crdApi = kubernetes.client.CustomObjectsApi()
+        customObjectList = crdApi.list_cluster_custom_object(
+            group='genesis-mining.com',
+            version='v1beta1',
+            plural='clustersecrets'
+        )
+        for customObject in customObjectList['items']:
+            clusterSecretList.append(ClusterSecret(
+                customObject['spec']['name'],
+                customObject['spec']['namespace']
+            ))
+        return clusterSecretList
