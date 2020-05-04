@@ -74,6 +74,26 @@ spec:
     - kube-public
 ```
 
+* Apply the ClusterSecret:
+
+```bash
+kubectl apply -f examples/clusterconfigmap.yaml
+```
+
+The upstream secret is taken and will be applied to given namespaces.
+
+* Delete the ClusterSecret:
+```bash
+kubectl delete clustersecret example-secret
+```
+
+All applied secrets **except** the upstream secret will be removed.
+
+If a clustersecret is updated (e.g. in includeNamespaces or excludeNamespaces), the changes
+will take effect immediatly.
+
+Do not change the settings of the upstream secret.
+
 Path | Type | Explanation
 ---|---|---
 `.spec.name` | String | Name of the cloned secret
@@ -98,6 +118,26 @@ spec:
   includeNamespaces:
     - kube-public
 ```
+
+* Apply the ClusterConfigMap:
+
+```bash
+kubectl apply -f examples/clusterconfigmap.yaml
+```
+
+The upstream ConfigMap is taken and will be applied to given namespaces.
+
+* Delete the ClusterConfigMap:
+```bash
+kubectl delete clusterconfigmap example-configmap
+```
+
+All applied ConfigMaps **except** the upstream ConfigMap will be removed.
+
+If a clusterConfigMap is updated (e.g. in includeNamespaces or excludeNamespaces), the changes
+will take effect immediatly.
+
+Do not change the settings of the upstream ConfigMap.
 
 Do not use includeNamespaces and excludeNamespaces together in one Object.
 
