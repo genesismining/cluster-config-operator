@@ -50,7 +50,7 @@ class ClusterConfigMap(KubernetesObject):
                 self.include_pattern.append(pattern)
         except KeyError:
             pass
-        
+
         try:
             for pattern in custom_object['spec']['excludeNamespaces']:
                 self.exclude_pattern.append(pattern)
@@ -166,7 +166,7 @@ class ClusterSecret(KubernetesObject):
                 self.include_pattern.append(pattern)
         except KeyError:
             pass
-        
+
         try:
             for pattern in custom_object['spec']['excludeNamespaces']:
                 self.exclude_pattern.append(pattern)
