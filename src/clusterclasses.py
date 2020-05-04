@@ -20,7 +20,6 @@ class KubernetesObject:
         self.exclude_pattern = []
         self.include_pattern = []
 
-
     def get_includes_and_excludes(self, custom_object):
         try:
             for pattern in custom_object['spec']['includeNamespaces']:
@@ -54,6 +53,7 @@ class KubernetesObject:
                         apply = True
                         break
         return apply
+
 
 class ClusterConfigMap(KubernetesObject):
     """
@@ -168,7 +168,6 @@ class ClusterSecret(KubernetesObject):
             name=crd_name
         )
         self.get_includes_and_excludes(custom_object)
-
 
     """
     Applies the configured secret to write_namespace
