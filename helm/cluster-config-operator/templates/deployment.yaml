@@ -42,10 +42,14 @@ spec:
           imagePullPolicy: {{.Values.image.pullPolicy}}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.livenessProbe.periodSeconds}}
           livenessProbe:
 {{ toYaml .Values.livenessProbe | indent 12 }}
+    {{- end}}
+    {{- if .Values.readinessProbe.periodSeconds}}
           readinessProbe:
 {{ toYaml .Values.readinessProbe | indent 12 }}
+    {{- end}}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

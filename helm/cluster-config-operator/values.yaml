@@ -49,8 +49,8 @@ rbac:
 ## Default values for the Cluster-Config Operator image
 ##
 image:
-  repository: eu.gcr.io/internal-services-272317/secrets-operator
-  version: 2.0.0
+  repository: eu.gcr.io/internal-services-272317/clusterconfig
+  version: 2.0.0-test1
   pullPolicy: IfNotPresent
 
 ## Number of TLS exporter replicas desired
