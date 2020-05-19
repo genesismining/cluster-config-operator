@@ -101,7 +101,7 @@ Path | Type | Explanation
 `.spec.excludeNamespaces` | Array (String, Regex) | Namespaces which should be blacklisted
 `.spec.includeNamespaces` | Array (String, Regex) | Namespaces which should be whitelistet
 
-Do not use includeNamespaces and excludeNamespaces together in one Object.
+If includeNamespaces and excludeNamespaces is used at the same time in one object, only includeNamespaces will be deployed.
 
 ### ClusterConfigMaps
 
@@ -139,7 +139,7 @@ will take effect immediatly.
 
 Do not change the settings of the upstream ConfigMap.
 
-Do not use includeNamespaces and excludeNamespaces together in one Object.
+If includeNamespaces and excludeNamespaces is used at the same time in one object, only includeNamespaces will be deployed.
 
 ## Roadmap
 
@@ -147,13 +147,15 @@ No Roadmap currently
 
 ## Contributing
 
+* See [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## Author
 
 * @thesolution90 (christopher.becker@genesis-mining.com)
 
 ## Licence
 
-* GNU GPLv3
+* See [LICENCE](LICENCE)
 
 ## Thanks to
 

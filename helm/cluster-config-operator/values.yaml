@@ -49,7 +49,7 @@ rbac:
 ## Default values for the Cluster-Config Operator image
 ##
 image:
-  repository: genesismining/tls-exporter
+  repository: genesismining/cluster-config-operator
   version: latest
   pullPolicy: IfNotPresent
 
