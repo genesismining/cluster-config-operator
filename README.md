@@ -151,7 +151,7 @@ No Roadmap currently
 
 ## Author
 
-* @thesolution90 (@thesolution90)
+* Christopher Becker (@thesolution90)
 
 ## Licence
 
