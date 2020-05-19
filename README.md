@@ -151,7 +151,7 @@ No Roadmap currently
 
 ## Author
 
-* @thesolution90 (christopher.becker@genesis-mining.com)
+* @thesolution90 (@thesolution90)
 
 ## Licence
 
