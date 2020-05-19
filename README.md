@@ -109,7 +109,7 @@ No Roadmap currently
 
 ## Author
 
-* Christopher Becker (christopher.becker@genesis-mining.com)
+* Christopher Becker (@thesolution90)
 
 ## Licence
 
