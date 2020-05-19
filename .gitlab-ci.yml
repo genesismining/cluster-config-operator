@@ -72,6 +72,9 @@ helm repo build:
 update versioncontrol:
   extends: .update versioncontrol
 
+release dockerhub:
+  extends: .release dockerhub
+
 ########################################################################
 # DEPLOY STAGE                                                         #
 ########################################################################
